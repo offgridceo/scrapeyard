@@ -28,17 +28,21 @@ def remove_temp_file(filepath: str):
     except Exception:
         pass
 
-# Universal configuration to bypass security challenges
+# Solidified settings to bypass cloud data-center bans
 BASE_YTDL_OPTS = {
     'noplaylist': True,
     'quiet': True,
     'no_warnings': True,
-    # Forces a generic browser identity so platforms don't instantly flag the script
+    # CRITICAL: Bypasses the specific player client signature that triggers the 403 error
+    'extractor_args': {
+        'youtube': {
+            'player_client': ['default', '-android_sdkless']
+        }
+    },
     'http_headers': {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
-        'Sec-Fetch-Mode': 'navigate',
     }
 }
 
@@ -50,14 +54,14 @@ def read_root():
 @app.post("/api/analyze")
 def analyze_link(request: LinkRequest):
     opts = dict(BASE_YTDL_OPTS)
-    opts['extract_flat'] = True  # Fast scan without downloading chunks
+    opts['extract_flat'] = True
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(request.url, download=False)
             if not info:
-                raise Exception("Empty metadata package returned.")
+                raise Exception("Handshake failed.")
             return {
-                "title": info.get("title", "Target Video Target Located"),
+                "title": info.get("title", "Target Located"),
                 "source": info.get("extractor_key", "Web Stream")
             }
     except Exception as e:
@@ -87,7 +91,6 @@ def download_media(url: str, mode: str, background_tasks: BackgroundTasks):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
-            
             if mode == "mp3":
                 filename = os.path.splitext(filename)[0] + ".mp3"
                 
@@ -95,6 +98,6 @@ def download_media(url: str, mode: str, background_tasks: BackgroundTasks):
             background_tasks.add_task(remove_temp_file, filename)
             return FileResponse(path=filename, media_type='application/octet-stream', filename=os.path.basename(filename))
         else:
-            raise HTTPException(status_code=500, detail="File compilation error.")
+            raise HTTPException(status_code=500, detail="Compilation failed.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
