@@ -1,17 +1,23 @@
 FROM python:3.10-slim
 
-# Install system utilities: FFmpeg for conversion + Node.js for signature decryption
+# Install system dependencies: FFmpeg for media encoding, curl and unzip to acquire Deno
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     curl \
-    && curl -fsSL https://deb.nodesource.com/setup_18.x | gen_node_install_script=1 bash - \
-    && apt-get install -y nodejs \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Deno securely to decode modern JavaScript streaming rules
+RUN curl -fsSL https://deno.land/x/install/install.sh | sh
+ENV DENO_INSTALL="/root/.deno"
+ENV PATH="$DENO_INSTALL/bin:$PATH"
 
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Explicitly force pip to pull the absolute newest builds to patch breaking platform edits
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt --upgrade
 
 COPY main.py .
 COPY index.html .
