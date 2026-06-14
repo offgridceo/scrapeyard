@@ -1,94 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ScrapeYard // Terminal</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background-color: #0b0b0b; color: #d4d4d8; font-family: monospace; }
-        .brutal-panel { border: 2px solid #ef4444; box-shadow: 4px 4px 0px #ef4444; }
-        .action-btn { border: 1px solid #3f3f46; background: #18181b; transition: all 0.15s ease; }
-        .action-btn:hover { background: #ef4444; color: #0b0b0b; border-color: #ef4444; }
-    </style>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCRAPEYARD</title><script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-4">
-
-    <div class="w-full max-w-xl bg-black p-6 brutal-panel">
-        <h1 class="text-3xl font-black tracking-tighter text-red-500 mb-1">SCRAPEYARD</h1>
-        <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-6">Direct Unwatermarked Extraction Node</p>
-
-        <input 
-            type="text" 
-            id="urlBox" 
-            placeholder="Paste target link here..." 
-            class="w-full bg-zinc-900 border border-zinc-700 p-4 text-white text-sm focus:outline-none focus:border-red-500 mb-4"
-        >
-
-        <div id="status" class="hidden text-xs py-2 text-yellow-500 font-bold uppercase tracking-wider animate-pulse mb-2"></div>
-
-        <div id="tray" class="hidden flex flex-col gap-3 pt-2">
-            <div id="metaInfo" class="text-xs text-zinc-400 border border-zinc-800 bg-zinc-950 p-3 mb-1 font-bold truncate"></div>
-            
-            <button onclick="download('original')" class="action-btn p-4 text-left font-bold uppercase text-xs tracking-wider flex justify-between items-center">
-                <span>🎬 Download Original Max Quality</span>
-                <span class="text-[10px] text-zinc-500 font-normal">Source Master</span>
-            </button>
-            <button onclick="download('1080p')" class="action-btn p-4 text-left font-bold uppercase text-xs tracking-wider flex justify-between items-center">
-                <span>📺 Download 1080p Format</span>
-                <span class="text-[10px] text-zinc-500 font-normal">Compressed MP4</span>
-            </button>
-            <button onclick="download('mp3')" class="action-btn p-4 text-left font-bold uppercase text-xs tracking-wider flex justify-between items-center">
-                <span>🎵 Download Audio Track Only</span>
-                <span class="text-[10px] text-zinc-500 font-normal">192kbps MP3</span>
-            </button>
+<body class="bg-zinc-950 text-zinc-300 font-mono min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-black border border-red-600 p-6 shadow-[4px_4px_0px_#dc2626]">
+        <h1 class="text-3xl font-black tracking-tighter text-red-600 mb-4">SCRAPEYARD</h1>
+        <input type="text" id="url" placeholder="Paste link here..." class="w-full bg-zinc-900 border border-zinc-700 p-4 text-sm text-white focus:outline-none focus:border-red-600 mb-4">
+        <div id="msg" class="hidden text-xs text-yellow-500 font-bold mb-4 uppercase animate-pulse"></div>
+        <div id="buttons" class="hidden flex flex-col gap-2">
+            <button onclick="dl('original')" class="border border-zinc-700 p-3 text-xs font-bold text-left hover:bg-red-600 hover:text-black">🎬 MAX QUALITY ORIGINAL</button>
+            <button onclick="dl('1080p')" class="border border-zinc-700 p-3 text-xs font-bold text-left hover:bg-red-600 hover:text-black">📺 STABLE 1080P MP4</button>
+            <button onclick="dl('mp3')" class="border border-zinc-700 p-3 text-xs font-bold text-left hover:bg-red-600 hover:text-black">🎵 EXTRACT AUDIO TRACK (.MP3)</button>
         </div>
     </div>
-
     <script>
-        const urlBox = document.getElementById('urlBox');
-        const status = document.getElementById('status');
-        const tray = document.getElementById('tray');
-        const metaInfo = document.getElementById('metaInfo');
-
-        urlBox.addEventListener('input', async (e) => {
-            const targetUrl = e.target.value.trim();
-            if (!targetUrl) {
-                tray.classList.add('hidden');
-                status.classList.add('hidden');
-                return;
-            }
-
-            status.innerText = "Parsing asset matrices...";
-            status.classList.remove('hidden');
-            tray.classList.add('hidden');
-
-            try {
-                const res = await fetch('/api/analyze', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: targetUrl })
-                });
-                if (!res.ok) throw new Error();
-                const data = await res.json();
-                
-                status.classList.add('hidden');
-                metaInfo.innerText = `TARGET: ${data.title} [${data.source.toUpperCase()}]`;
-                tray.classList.remove('hidden');
-            } catch {
-                status.innerText = "Extraction Error: Invalid link or platform protected.";
-                status.className = "text-xs py-2 text-red-500 font-bold uppercase tracking-wider";
-            }
+        const url = document.getElementById('url'), msg = document.getElementById('msg'), btns = document.getElementById('buttons');
+        url.addEventListener('input', async () => {
+            if(!url.value.trim()) return; msg.innerText = "Analyzing target..."; msg.classList.remove('hidden');
+            let res = await fetch('/api/analyze', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url:url.value})});
+            let data = await res.json();
+            if(data.error) { msg.innerText = "Extraction error."; return; }
+            msg.classList.add('hidden'); btns.classList.remove('hidden');
         });
-
-        function download(mode) {
-            const targetUrl = urlBox.value.trim();
-            if (!targetUrl) return;
-            status.innerText = `Packaging stream [${mode.toUpperCase()}]... Download initializing.`;
-            status.className = "text-xs py-2 text-yellow-500 font-bold uppercase tracking-wider animate-pulse mb-2";
-            status.classList.remove('hidden');
-            window.location.href = `/api/download?url=${encodeURIComponent(targetUrl)}&mode=${mode}`;
-        }
+        function dl(mode) { msg.innerText = "Processing stream download..."; msg.classList.remove('hidden'); window.location.href = `/api/download?url=${encodeURIComponent(url.value)}&mode=${mode}`; }
     </script>
 </body>
 </html>
